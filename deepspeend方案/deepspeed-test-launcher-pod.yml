@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: deepspeed-test-launcher
+  labels:
+    app: deepspeed-test-launcher
+spec:
+  containers:
+  - command:
+    - sh
+    - -c
+    - deepspeed --hostfile=/workspace1/myhostfile /workspace/DeepSpeedExamples/HelloDeepSpeed/train_bert_ds.py
+      --checkpoint_dir /data/deepspeed_data
+    env:
+    - name: gpus
+      value: "1"
+    - name: maxWorkers
+      value: "1000"
+    - name: minWorkers
+      value: "1"
+    - name: workers
+      value: "2"
+    image: registry.cn-beijing.aliyuncs.com/acs/deepspeed:hello-deepspeed
+    imagePullPolicy: IfNotPresent
+    name: et
+    volumeMounts:
+    - mountPath: /data
+      name: training-data
+    - mountPath: /dev/shm
+      name: dshm
+    - mountPath: /workspace1
+      name: deepspeed-test-hostfile
+    - mountPath: /root/.ssh
+      name: deepspeed-test-secret
+      subPath: .ssh
+    workingDir: /root
+  volumes:
+  - name: training-data
+    persistentVolumeClaim:
+      claimName: training-data
+  - emptyDir:
+      medium: Memory
+      sizeLimit: 2Gi
+    name: dshm
+  - configMap:
+      defaultMode: 420
+      name: deepspeed-test-hostfile
+    name: deepspeed-test-hostfile
+  - name: deepspeed-test-secret
+    secret:
+      defaultMode: 384
+      items:
+      - key: id_rsa
+        path: .ssh/id_rsa
+      - key: id_rsa.pub
+        path: .ssh/id_rsa.pub
+      - key: id_rsa.pub
+        path: .ssh/authorized_keys
+      - key: config
+        path: .ssh/config
+      secretName: deepspeed-test-secret

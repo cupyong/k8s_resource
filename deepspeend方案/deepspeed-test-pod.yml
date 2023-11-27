@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: deepspeed-test-0
+  labels:
+    app: deepspeed-test-0
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: nvidia.com/gpu
+            operator: Exists
+  containers:
+  - command:
+    - sh
+    - -c
+    - /usr/sbin/sshd  && sleep 365d
+    image: registry.cn-beijing.aliyuncs.com/acs/deepspeed:hello-deepspeed
+    imagePullPolicy: IfNotPresent
+    name: et
+    resources:
+      limits:
+        nvidia.com/gpu: "1"
+      requests:
+        nvidia.com/gpu: "1"
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /data
+      name: training-data
+    - mountPath: /dev/shm
+      name: dshm
+    - mountPath: /root/.ssh
+      name: deepspeed-test-secret
+      subPath: .ssh
+    workingDir: /root
+  restartPolicy: Never
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - name: training-data
+    persistentVolumeClaim:
+      claimName: training-data
+  - emptyDir:
+      medium: Memory
+      sizeLimit: 2Gi
+    name: dshm
+  - name: deepspeed-test-secret
+    secret:
+      defaultMode: 384
+      items:
+      - key: id_rsa
+        path: .ssh/id_rsa
+      - key: id_rsa.pub
+        path: .ssh/id_rsa.pub
+      - key: id_rsa.pub
+        path: .ssh/authorized_keys
+      - key: config
+        path: .ssh/config
+      secretName: deepspeed-test-secret

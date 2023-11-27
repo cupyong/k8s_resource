@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: deepspeed-test-hostfile
+  namespace: default
+data:
+  myhostfile: |
+    deepspeed-test-0 slots=1
